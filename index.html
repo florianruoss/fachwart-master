@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fachwart Master</title>
+<style>
+:root{--bg:#e9e2c8;--fg:#1d2b1d;--card:#fffaf0;--ac:#2e7d32;--gold:#e8b84a;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14210f;--fg:#f2ecd2;--card:#22331b}}
+:root[data-theme="dark"]{--bg:#14210f;--fg:#f2ecd2;--card:#22331b}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.4 Georgia,'Times New Roman',serif;display:flex;flex-direction:column;align-items:center;gap:10px;padding:8px}
+#wr{width:min(100%,640px)}#st{position:relative;width:100%;aspect-ratio:240/176}
+canvas{width:100%;height:100%;display:block;border:3px solid #4e342e;border-radius:6px 6px 0 0;background:#000}
+#hud{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#101010;color:#fff3c4;border:3px solid #4e342e;border-top:0;border-radius:0 0 6px 6px;padding:6px 10px;font:bold clamp(13px,3vw,18px) Georgia,serif}
+#hud svg{width:30px;height:30px;display:block}
+.sl{display:flex;align-items:center;gap:6px;border:2px solid #cfd8dc;border-radius:6px;padding:1px 6px}.sl b{font-size:.8em;color:#ffd54f}
+.ap{display:flex;align-items:center;gap:4px}#rn{flex:1;text-align:center;color:#bbb;font-weight:normal;min-width:90px}#hr{display:flex;gap:2px}#hr svg{width:24px;height:24px}
+.ov{position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;padding:14px}
+.ov[hidden]{display:none}
+#m{align-items:center;background:rgba(0,0,0,.55)}
+.box{background:var(--card);color:var(--fg);border:3px solid #4e342e;border-radius:8px;padding:10px 12px;width:100%;max-height:100%;overflow:auto;font-size:clamp(12px,2.6vw,17px)}
+h3{margin:0 0 4px;font-size:1.05em;color:var(--ac)}
+.box p{margin:4px 0 8px}
+.o{display:block;width:100%;text-align:left;margin:4px 0;padding:8px 10px;font:inherit;color:inherit;background:transparent;border:2px solid #8d6e63;border-radius:6px;cursor:pointer}
+.o:hover{border-color:var(--gold)}
+.o.ok{background:#2e7d32;color:#fff;border-color:#2e7d32}.o.no{background:#b71c1c;color:#fff;border-color:#b71c1c}
+button.big{font:bold 1.1em Georgia,serif;padding:10px 22px;background:var(--gold);color:#2b1b00;border:3px solid #4e342e;border-radius:8px;cursor:pointer}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+#pad{display:grid;grid-template-columns:repeat(3,56px);grid-template-rows:repeat(2,56px);gap:6px;touch-action:none;user-select:none}
+#pad button{font-size:22px;background:var(--card);color:var(--fg);border:2px solid #4e342e;border-radius:10px;touch-action:none}
+#pad .u{grid-column:2}#pad .l{grid-row:2;grid-column:1}#pad .d{grid-row:2;grid-column:2}#pad .r{grid-row:2;grid-column:3}
+@media (hover:hover) and (pointer:fine){#pad{display:none}}
+</style></head><body>
+<div id="wr"><div id="st"><canvas id="c" width="720" height="528"></canvas>
+<div id="m" class="ov" hidden><div class="box"><h3 id="w"></h3><p id="q"></p><div id="o"></div><p id="f"></p><button class="big" id="nx" hidden>Weiter</button></div></div>
+<div id="t" class="ov"><button class="big" id="go">Spiel starten</button></div></div><div id="hud"><span class="sl"><b>B</b><svg viewBox="0 0 24 24"><path d="M5 3l8 11M19 3l-8 11" stroke="#cfd8dc" stroke-width="2.5" stroke-linecap="round"/><circle cx="8" cy="19" r="3" fill="none" stroke="#e53935" stroke-width="2.5"/><circle cx="16" cy="19" r="3" fill="none" stroke="#e53935" stroke-width="2.5"/></svg></span><span class="sl"><b>A</b><svg viewBox="0 0 24 24"><rect x="1" y="9" width="6" height="7" rx="2" fill="#8d6e63"/><path d="M7 10h16l-1.5 6-1.5-2.5-1.7 2.5-1.7-2.5-1.7 2.5-1.7-2.5-1.7 2.5-1.7-2.5L7 16z" fill="#b0bec5" stroke="#78909c" stroke-width=".8"/></svg></span><span class="ap"><svg viewBox="0 0 24 24"><circle cx="12" cy="14" r="8" fill="#e53935"/><path d="M12 6c0-2 1-3 3-3" stroke="#43a047" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg><b id="sgn">0/12</b></span><span id="rn">Streuobstwiese</span><span id="hr"></span></div></div>
+<div id="pad"><button class="u" data-k="arrowup" aria-label="hoch">▲</button><button class="l" data-k="arrowleft" aria-label="links">◀</button><button class="d" data-k="arrowdown" aria-label="runter">▼</button><button class="r" data-k="arrowright" aria-label="rechts">▶</button></div>
+<script>
+const $=i=>document.getElementById(i),C=$('c'),g=C.getContext('2d'),W=240,H=176,MH=176,T=16,NEED=12;
+// Fragen: [Kategorie, Frage, richtige Antwort, falsch, falsch]  b=Baum p=Pilzwolke/Schädling r=Rose n=NPC
+const Q=[
+['b','Wann schneidest du empfindliche Kirschen am besten?','Im Sommer, ab Ende Juli','Im tiefen Winter','Im März'],
+['b','Was ist der Sommerschnitt bei Kernobst?','Ein Korrekturschnitt','Ein Verjüngungsschnitt','Ein Starkeingriff'],
+['b','Ab wann werden Walnussbäume geschnitten?','Ab Ende August','Im Februar','Im Oktober'],
+['b','Was ist eine Zwieselbildung?','Gabelbildung aus zwei gleich starken Mitteltrieben mit Astbruchgefahr','Pilzbefall der Rinde','Wurzelfäule durch Staunässe'],
+['b','Was ist der Juniriss?','Noch nicht verholzte Triebe starkwüchsiger Sorten werden gerissen','Rückschnitt auf 3 Augen','Ausreißen von Wildtrieben'],
+['b','Was bewirkt der Julischnitt?','Er regt die Blütenbildung an','Er fördert starken Neuaustrieb','Er schützt vor Frost'],
+['b','Wann startet der Edelreiserschnitt?','Am 2. Februar (Maria Lichtmess)','Am 24. Juni (Johannistag)','Im September'],
+['b','Wann gehören Leimringe an den Baum?','Nur im Spätherbst/Winter, gegen Frostspanner','Im Frühjahr gegen Apfelwickler','Ganzjährig'],
+['b','Wann spritzt du nach dem Fang in der Pheromonfalle Granulosevirus?','Genau 7 Tage später','Sofort','Nach 4 Wochen'],
+['b','Wie hältst du beim Ballerina-Baum die Seitentriebe klein?','Jährlich um eine Handbreite einkürzen','Gar nicht','Auf einen Meter einkürzen'],
+['b','Wie alt darf ein Ast beim Johannisbeerschnitt höchstens sein?','4 Jahre','10 Jahre','1 Jahr'],
+['b','Wann hängst du die Pheromonfalle in den Apfelbaum?','Im Frühjahr, wenn die Früchte daumennagelgroß sind','Im Winter','Zur Ernte'],
+['b','Wie baust du ein Übertagungshotel für Ohrwürmer?','Tontopf mit Stroh, Öffnung nach unten, am Stamm','Eimer mit Honig','Leimring am Ast'],
+['b','Wofür nutzt ein Fachwartabsolvent Wundwachs noch?','Nur zum Vertuschen von Fehlschnitten','Für jeden Schnitt','Zum Veredeln'],
+['p','Woran erkennst du Monilia laxa?','Scharfe, ringförmige Abgrenzung zwischen krankem und gesundem Holz','Schlierenförmiger Einzug ins gesunde Holz','Weißer Belag auf der Blattunterseite'],
+['p','Welche Pflanzen sind KEINE Wirtspflanzen des Feuerbrands?','Steinobstarten','Birnen','Cotoneaster'],
+['p','Wie schneidest du bei Feuerbrand zurück?','30 cm bis ins gesunde Holz','Nur Blätter entfernen','Gar nicht, spritzen'],
+['p','Wo ist Feuerbrand meldepflichtig?','Bei der Obst- und Gartenbauberatung des Landkreises','Beim Bürgermeister','Beim Baumarkt'],
+['p','Wie desinfizierst du Schnittwerkzeug nach Feuerbrand?','Mit Spiritus oder hochprozentigem Alkohol','Mit Wasser','Gar nicht'],
+['p','Woran erkennst du die Schrotschusskrankheit?','Löchrig durchsiebte Blätter bei Kirschen','Rote Blasen am Pfirsich','Weißer Belag auf Beeren'],
+['p','Welche Pfirsiche sind für die Kräuselkrankheit besonders anfällig?','Gelbfleischige Sorten','Weißfleischige Sorten','Alle gleich'],
+['p','Wo sitzt der Amerikanische Stachelbeermehltau?','Als Schönwetterpilz auf der Blattoberseite','In den Wurzeln','Nur an der Blattunterseite'],
+['p','Welcher Erreger steckt hinter der Pseudomonaswelke?','Ein Bakterium (über die Luft verbreitet)','Ein Bodenpilz','Ein Virus'],
+['p','Was hilft bei Verticilliumwelke?','Nichts: Pflanzen entfernen, Boden austauschen','Fungizid im Februar','Mehr gießen'],
+['p','Was hilft gegen die Brombeergallmilbe?','Fruchtmumien abpflücken, Rapsöl oder Neem','Eisendünger','Leimring'],
+['p','Was hilft gegen Dickmaulrüssler-Larven?','Nematoden im Mai/Juni gießen (feucht, über 20 °C)','Tannenreisig','Spritzbrühe im Winter'],
+['p','Was richten Apfelwickler-Larven an?','Sie höhlen die Äpfel aus, die Früchte faulen','Sie saugen an Blättern','Sie fressen Wurzeln'],
+['p','Was gehört in die Spritzbrühe gegen saugende Insekten?','1 l lauwarmes Wasser, 1 EL Rapsöl, Tropfen Spülmittel','Brennnesseljauche pur','Eisensulfat'],
+['p','Welche Pflanze vertreibt Nematoden und Fliegen?','Tagetes (patula)','Lavendel','Wollziest'],
+['r','Wann schneidest du Beet- und Edelrosen?','Zur Forsythienblüte','Im November','Im Juli'],
+['r','Wie schneidest du Beetrosen?','5–10 starke Triebe auf 3 Augen','Alles auf 10 cm','Ein Trieb auf 10 Augen'],
+['r','Wie oft schneidest du Bodendeckerrosen komplett zurück?','Alle 4 Jahre, auf ca. 10 cm','Jedes Jahr','Nie'],
+['r','Wie schneidest du Ramblerrosen?','Kaum, nur Abgestorbenes entfernen','Jährlich bodennah','Wie Beetrosen'],
+['r','Wie schneidest du Strauchrosen?','Jährlich 1–2 Alttriebe bodennah entfernen','Alle Triebe halbieren','Gar nicht'],
+['r','Wie schneidest du zweimal blühende Rosen nach dem 1. Flor?','Blüte bis zum nächsten Blattansatz zurück','Komplett bodennah','Gar nicht'],
+['r','Wie tief liegt die Veredelungsstelle beim Pflanzen heute?','Ca. 5 cm tief im Erdreich','Oberirdisch','Eine Handbreit über dem Boden'],
+['r','Was tust du bei einem Wildtrieb an der Rose?','Im Juni ausreißen, nicht schneiden','Abschneiden','Düngen'],
+['r','Was bedeutet ADR bei Rosen?','Allgemeine Deutsche Rosenneuheitenprüfung','Alle Düngerarten für Rosen','Ausdauernde Dauerblüher-Rose'],
+['r','Was schützt Rosen besser vor Starkfrost?','Eine dicke Laubschicht','Tannenreisig','Folie'],
+['r','Passen Lavendel und Rosen zusammen?','Nein: Lavendel braucht mageren Kiesboden, Rosen fetten Lehm','Ja, ideal','Nur im Topf'],
+['n','Welcher Dünger passt zur Frühjahrsdüngung (bis Juni)?','Ausgewogen stickstoffhaltig (max. 20 %)','Kaliumhaltig','Gar keiner'],
+['n','Welcher Dünger passt zur Sommerdüngung (bis Ende August)?','Ausgewogen kaliumhaltig (max. 18 %)','Stickstoffhaltig','Eisendünger'],
+['n','Wie oft machst du Bodenproben, und wann?','Alle 3 Jahre im November','Jedes Jahr im Mai','Alle 10 Jahre'],
+['n','Welcher Wirkstoff steckt im Eisendünger?','Eisen-II-Sulfat (giftig, mit Schutzkleidung ausbringen)','Kalk','Kompost'],
+['n','Was hilft gegen Eisenmangel-Chlorose?','Eisenchelatdünger (bei gelben Nadeln: Bittersalz)','Mehr Kalk','Brennnesseljauche'],
+['n','Wie hoch mähst du den Rasen?','Auf höchster Stufe, 5–6 cm','2 cm','10 cm'],
+['n','Wann vertikutierst du?','Mitte Mai oder im September, nur bei starkem Moos','Im Januar','Im Hochsommer'],
+['n','Was brauchen Rhododendren?','Purer Rhododendronsubstrat, Beet 60 cm tief ausgehoben','Fetten Lehmboden','Reinen Rindenmulch'],
+['n','Wann entfernst du Verblühtes beim Rhododendron?','Ca. 14 Tage nach der Blüte','Sofort','Im Herbst'],
+['n','Wann schneidest du immergrüne Hecken?','1× jährlich im März, nicht im Sommer','Im Juli','Im Dezember'],
+['n','Wann schneidest du laubabwerfende Hecken?','Anfang Juli und im März','Nur im Herbst','Nur im Juni'],
+['n','Wann schneidest du Frühjahrsblüher wie Forsythien?','Direkt nach der Blüte','Im Herbst','Im Februar'],
+['n','Wie schneidest du herbsttragende Himbeeren?','Vor dem Austrieb komplett bodennah','Nach der Ernte im Juli','Gar nicht'],
+['n','Wie schneidest du sommertragende Himbeeren?','Fruchtende Ruten nach der Ernte bodennah, neue auf 2 m kürzen','Alle im März halbieren','Gar nicht'],
+['n','Wie machst du Stecklinge?','Anfang Juli, einjähriger Trieb auf 3 Augen, 2 Augen im Substrat','Im Dezember, 10 Augen','Im August, ohne Substrat'],
+['n','Wann teilst du Stauden?','Anfang Mai oder im September','Im Januar','Im Hochsommer'],
+['n','Wie dick ist die ideale Mulchschicht?','Ca. 5 cm','20 cm','1 cm'],
+['n','Was hilft bei Frosttrocknis immergrüner Gehölze?','Ausgiebig wässern: mind. 20 l pro Pflanze und m²','Zuschneiden','Düngen'],
+['n','Wie viel Wasser spart die Tröpfchenbewässerung?','Die Gießkanne braucht das 3-Fache','Die Gießkanne braucht die Hälfte','Kein Unterschied'],
+['n','Warum sollst du Brennnesseljauche nicht selbst ansetzen?','Konzentration unklar: Gefahr der Überdüngung','Sie stinkt','Sie ist verboten'],
+['n','Was gilt ab Johannistag (24. Juni) für Rhabarber?','Nicht mehr ernten','Jetzt düngen','Jetzt teilen'],
+['n','Wann legst du Absenker an?','Ausgangs Winter, Trieb mit Hering am Boden fixieren','Im August','Im Dezember'],
+['n','Wie viel kg Raupen vertilgt ein Blaumeisenpaar mit Jungen pro Jahr?','Bis zu 150 kg','Bis zu 5 kg','Bis zu 1 Tonne'],
+['n','Wo beginnt der integrierte Pflanzenschutz?','Schon bei der Standortwahl','Erst beim Spritzen','Beim Kauf von Gift'],
+['n','Wie oft solltest du Gesteinsmehl ausbringen?','Alle 5 Jahre','Jede Woche','Nie'],
+['n','Wann schneidest du Frauenmantel und Wollziest zurück?','Nach der Blüte, ca. Mitte Juli, bis zum ersten Blattansatz','Im November','Gar nicht'],
+['n','Welche Zwiebelblumen kaufst du für Insekten?','Botanische Zwiebeln (Geophyten) als erste Nektarquelle','Nur gefüllte Tulpen','Dahlien'],
+['n','Wie düngst du Kübelpflanzen?','1 Dosierlöffel Dünger auf 10 l Wasser bei jedem Gießgang','Einmal im Jahr','Gar nicht'],
+['n','Was ist Pinzieren?','Das Einkürzen des Maitriebes (z. B. bei Nadelgehölzen)','Das Ausreißen von Wildtrieben','Ein Rosenschnitt im Juli'],
+['n','Was gehört in ein strukturstabiles Kübel-Substrat?','Lava, Blähton, Ziegelbruch und Pflanzsubstrat','Reiner Gartenlehm','Nur Sand'],
+['n','Wie düngst du den Rasen im Jahr?','3 Langzeitdüngungen (März, Juni, August) plus Herbstdüngung','Nur im Sommer','Jede Woche'],
+['n','Womit düngst du vor dem Ausbringen von Rindenmulch?','Stickstoffbetonter Langzeitdünger, z. B. Hornspäne','Mit nichts','Mit Kali'],
+['n','Für wen ist Gärtnern mit dem Mond eine gute Sache?','Für Rentner, die nie in den Urlaub fahren','Für alle Berufstätigen','Nur für Profis'],
+['p','Warum helfen Leimringe nicht gegen Apfelwickler?','Weil die Falter fliegen können','Weil sie zu teuer sind','Weil sie zu dick sind'],
+['n','Was ist der beste Frostschutz für Pflanzen?','Bis August kaliumbetont düngen, danach nicht mehr','Im Herbst stark düngen','Mit Folie abdecken']];
+const W2={0:['Im tiefen Winter, bei Frost','Im März, vor dem Austrieb'],2:['Ab Mitte März','Ab Ende Januar'],
+3:['Pilzbefall der Rinde nach Frost mit Rissen und absterbenden Ästen','Wurzelfäule durch Staunässe, die zum Umkippen des ganzen Baumes führt'],
+4:['Rückschnitt verholzter Triebe im Juni, damit die Wunden schnell verheilen','Ausreißen der Wildtriebe an der Veredelungsstelle, bevor sie verholzen'],
+6:['Am 24. Juni (Johannistag)','Im September nach der Ernte'],7:['Im Frühjahr und Sommer, gegen den Apfelwickler','Ganzjährig, damit Vögel möglichst viele Insekten fangen'],
+8:['Sofort, noch am selben Tag','Erst nach vier Wochen'],9:['Gar nicht, sie wachsen von allein schlank','Auf einen Meter kürzen und im Juli ausdünnen'],
+11:['Im Winter, wenn die Knospen noch geschlossen sind','Zur Ernte, wenn die Früchte vollständig ausgereift sind'],
+12:['Eimer mit Honigwasser und Stroh, am Boden aufgestellt','Leimring mit Strohfüllung, am Ast befestigt'],
+13:['Für jeden Schnitt, damit die Wunde heilt','Zum Veredeln, um Edelreiser zu verschließen'],
+14:['Schlierenförmiger Einzug ins gesunde Holz ohne scharfe Abgrenzung','Weißer, mehliger Belag auf der Blattoberseite bei Schönwetter'],
+15:['Birnen und Äpfel','Cotoneaster oder Mispel'],17:['Bei der Gemeinde- oder Stadtverwaltung vor Ort','Beim nächsten Gartenfachmarkt in der Umgebung'],
+18:['Mit klarem Wasser und einer Bürste abwaschen','Gar nicht, Feuerbrand wird nicht übertragen'],
+19:['Rote Blasen und Kräuseln der Blätter am Pfirsich','Weißer mehliger Belag auf Beerenblättern'],
+21:['In den Wurzeln als bodenbürtiger Welkepilz','Nur an der Blattunterseite bei feuchtem Wetter'],
+22:['Ein Bodenpilz, der über die Wurzeln eindringt','Ein Virus, das durch Blattläuse übertragen wird'],
+23:['Fungizid im Februar alle 10 Tage spritzen','Mehr gießen und die Pflanzen kräftig düngen'],
+24:['Eisendünger und mehrmals Kalk auf den Boden','Leimring im Spätherbst am Stamm anbringen'],
+25:['Spritzbrühe aus Rapsöl und Spülmittel im Winter','Tannenreisig im Spätherbst über die Wurzeln legen'],
+26:['Sie saugen Blattsaft und verkleben die Triebe','Sie fressen die Wurzeln und lassen Bäume welken'],
+27:['1 l kaltes Wasser, 1 EL Essig und etwas Zucker','Brennnesseljauche pur, ohne Wasser, mit Eisensulfat'],
+28:['Lavendel (Hybride)','Wollziest (Stachys)'],29:['Im November vor dem Frost','Im Juli nach dem ersten Flor'],
+30:['Alle Triebe auf 10 cm kürzen','Einen Trieb auf 10 Augen lassen'],31:['Jedes Jahr, auf ca. 20 cm','Nie, sie bleiben ungeschnitten'],
+32:['Jährlich bodennah wie Strauchrosen','Wie Beetrosen auf 3 Augen kürzen'],
+33:['Alle Triebe jährlich halbieren und kürzen','Gar nicht schneiden, nur den Flor entfernen'],
+34:['Komplett bodennah, damit der 2. Flor kommt','Gar nicht schneiden, sonst bleibt der Flor aus'],
+36:['Im Winter abschneiden, dicht am Boden','Düngen, bis er kräftig ausgetrieben hat'],
+37:['Allgemeine Düngeempfehlung für Rosenbeete','Ausdauernde Dauerblüher-Rosen im Reihenanbau'],
+38:['Tannenreisig über den Rosen','Eine Folie über den Pflanzen'],
+39:['Ja, beide gedeihen im fetten Lehmboden bestens','Nur im Topf, weil sie sonst keine Wurzeln bilden'],
+40:['Ausgewogen kaliumhaltig (max. 18 %)','Gar keiner, die Böden sind im Frühjahr gesättigt'],
+41:['Ausgewogen stickstoffhaltig (max. 20 %)','Eisendünger, einmal jährlich im Spätsommer'],
+42:['Jedes Jahr im Mai','Alle 10 Jahre im Februar'],
+43:['Kalkammonsalpeter (ungiftig, überall frei einsetzbar)','Eisen-III-Chlorid (harmlos für Mensch und Tier)'],
+44:['Mehr Kalk und Dünger (bei gelben Nadeln: Hornspäne)','Brennnesseljauche (bei gelben Nadeln: Eisendünger)'],
+45:['Auf niedrigster Stufe, 2 cm','Möglichst kurz, höchstens 1 cm'],
+46:['Im Januar bei Frost, um den Boden aufzureißen','Im Hochsommer, bei Trockenheit und Hitze'],
+47:['Fetten Lehmboden, Beet mit Kompost aufgefüllt','Reinen Rindenmulch, Beet nur 10 cm ausgehoben'],
+48:['Sofort nach dem Aufblühen','Erst im Herbst nach dem Laubfall'],
+49:['Im Hochsommer, bei Sonne und Wärme','Zweimal jährlich, im Juli und Dezember'],
+50:['Nur im Herbst nach dem Laubfall','Im Juni und im November'],51:['Im Herbst vor dem Frost','Im Februar vor dem Austrieb'],
+52:['Nach der Ernte im Juli bodennah','Gar nicht, nur Altholz entfernen'],
+53:['Alle Ruten im März um die Hälfte kürzen und aufbinden','Fruchtende Ruten bleiben stehen, nur neue werden entfernt'],
+54:['Im Dezember, kräftiger Trieb auf 10 Augen, ohne Substrat gestellt','Im August, verholzter Trieb auf 1 Auge, alle Augen im Substrat'],
+55:['Im Januar bei gefrorenem Boden','Im Hochsommer bei Hitze'],56:['Ca. 20 cm','Ca. 1 cm'],
+57:['Zurückschneiden und danach kräftig düngen','Gar nichts, die Pflanzen erholen sich selbst'],
+58:['Die Gießkanne braucht die Hälfte mehr Wasser','Es gibt keinen Unterschied im Wasserbedarf'],
+59:['Sie riecht stark und lockt Schnecken an','Sie ist im Hausgarten gesetzlich verboten'],
+60:['Jetzt kräftig düngen','Jetzt im Ganzen teilen'],
+61:['Im August, Trieb senkrecht in den Boden stecken','Im Dezember, abgeschnittenen Trieb in Wasser stellen'],
+63:['Erst beim Einsatz der Spritze','Beim Kauf des Pflanzenschutzmittels'],64:['Jedes Jahr','Alle 20 Jahre'],
+65:['Im November, bodennah, nach dem ersten Frost','Gar nicht, sie dürfen nie geschnitten werden'],
+66:['Nur gefüllte Tulpen, weil sie mehr Nektar bieten','Dahlien, die von Februar bis Oktober blühen'],
+67:['Einmal im Jahr, mit einem Löffel Dünger im Frühjahr','Gar nicht, das Substrat reicht für die ganze Saison'],
+68:['Das Ausreißen von Wildtrieben im Juni an Rosen','Ein Rosenschnitt im Juli mit der Gartenschere'],
+69:['Reiner Gartenlehm, mit etwas Sand vermischt','Nur Sand, mit viel frischem Kompost vermischt'],
+70:['Nur im Sommer, einmal mit Kaliumdünger bis August','Jede Woche, mit stickstoffbetontem Flüssigdünger'],
+71:['Mit gar nichts, Rindenmulch ist nährstoffreich','Mit Kali, damit das C/N-Verhältnis weit bleibt'],
+72:['Für alle Berufstätigen mit festem Zeitplan','Nur für Profis, die beruflich gärtnern'],
+73:['Weil sie bei Wärme sofort abfallen','Weil die Larven im Boden überwintern'],
+74:['Im Herbst stark düngen, am besten stickstoffreich','Im Winter mit Folie abdecken, das reicht']};
+for(const i in W2){Q[i][3]=W2[i][0];Q[i][4]=W2[i][1]}
+const R={0:['Sie verkraften den Eingriff im Sommer besser und bekommen weniger Gummifluss','Im Sommer sind Schnittwunden vor Frost geschützt und heilen schneller','Im Sommer lässt sich der Baum leichter erziehen und treibt weniger aus'],
+4:['Die Äste sind noch nicht mit dem Holzteil verbunden und reißen ohne Narben','Die Äste sind schon verholzt und brechen an natürlichen Sollbruchstellen','Das Reißen regt die Wurzelbildung an und verhindert Gummifluss'],
+7:['Im Spätherbst krabbeln die Weibchen des Frostspanners den Stamm hinauf','Im Winter überwintern Apfelwickler am Stamm und werden dort abgefangen','Im Spätherbst wandern die Blattläuse in die Krone und legen Eier'],
+16:['Der Erreger zieht schlierenförmig weit ins gesunde Holz','Der Pilz sitzt scharf abgegrenzt nur in der Rinde','Der Schnitt tötet die Bakterien in den Wurzeln ab'],
+25:['Nematoden sind Nützlinge und brauchen feuchten, warmen Boden','Nematoden sind Gifte, die nur bei trockenem Frostboden wirken','Nematoden fressen die Käfer an den Blättern direkt auf'],
+28:['Terthiophene aus den Wurzeln locken Nematoden an und töten sie','Der Duft der Blüten zieht Vögel an, die Nematoden fressen','Tagetes entziehen dem Boden alle Nährstoffe der Schädlinge'],
+35:['Es bilden sich weniger Wildlinge als früher angenommen','Sonst erfriert die Veredelungsstelle schon beim ersten Frost','Die Wurzeln bekommen so mehr Licht und Luft zum Wachsen'],
+38:['Laub isoliert, Tannenreisig lässt die kalte Luft einfach durch','Laub enthält Nährstoffe, die Starkfröste von selbst abmildern','Tannenreisig ist für Rosen giftig und verbrennt die Triebe'],
+39:['In fettem Lehm wird Lavendel zu groß, überdeckt die Rosen und härtet nicht aus','Lavendel lockt Schädlinge an, die Rosen im Frühjahr komplett kahl fressen und schwächen','Rosen scheiden Wurzelgifte aus, die Lavendel im Boden langsam absterben lassen'],
+58:['Beim Gießen mit der Kanne geht viel Wasser durch Oberflächenabfluss verloren','Tropfschläuche brauchen mehr Wasser, weil sie den Boden stark befeuchten','Die Gießkanne wird schneller leer, deshalb muss man dreimal gießen'],
+65:['So bildet sich nach dem Schnitt eine schöne Nachblüte','So bilden sich im Herbst mehr Samen für Vögel','So wachsen die Wurzeln nach dem Schnitt schneller'],
+71:['So bleibt das C/N-Verhältnis eng, Auslaugung und Übersäuerung werden verhindert','So hält der Dünger Unkrautsamen fern und verhindert Schimmel im Mulch','So wird der Mulch basisch und die Wühlmäuse bleiben dem Beet fern'],
+74:['Das Holz reift gut aus und hält Frösten stand, kein unnötiges Antreiben','Der Dünger würde im Herbst vom Regen sofort ausgewaschen und wäre wirkungslos','Nach August nehmen Pflanzen grundsätzlich keine Nährstoffe mehr auf']};
+const MP=[["###############","######s########","..,,,.....b....",".b.,,..........","...,,..###.....","b..,,..###....b","...,,..........","..b,,.....b....","...,,..........",".b.,,.......b..","..............."],
+["###############","#######s#######","......bb..b.b..","..b.....b..b..b",".......b.......",".b..b.....b.b.b".replace('b.b.b','..b.b'),"......b........","..b......b..b..","......b........",".....b.....b...","..............."],
+["...............",".,,,,,,,,,,,,,.",".,bbb,,bbb,,,b.",".,,,,,,,,,,,,,.","..b.b..b.b..b..","...............","b.............b","...............","..b.b..b.b..b..","...............","..............."],
+["...............","...............","..bb.......bb..",",,,,,,,,,,,,,,,","...............","..bb.......bb..","...............","...............","...b.......b...","...............","..............."]];
+const mk=(t,x,y,o={})=>({t,x:x*T+8,y:y*T+8,ox:x*T+8,oy:y*T+8,done:0,...o});
+const E=[[mk('b',2,4),mk('b',9,3),mk('b',12,6),mk('b',6,8),mk('n',11,8,{n:'Opa Hugo',c:'#b5651d'}),mk('p',10,5)],
+[mk('b',3,3),mk('b',10,3),mk('p',5,4),mk('p',9,6),mk('p',11,8),mk('n',13,7,{n:'Försterin Flora',c:'#2e7d32'})],
+[mk('r',3,5),mk('r',7,5),mk('r',11,5),mk('r',5,7),mk('p',9,9),mk('n',12,9,{n:'Rosi vom Rosengarten',c:'#c2185b'})],
+[mk('n',2,7,{n:'Meister Kurt',c:'#455a64'}),mk('n',12,7,{n:'Frau Biene',c:'#f9a825'})]];
+const B={x:120,y:56,hp:8,v:1},NM=['Streuobstwiese','Wald','Rosengarten','Lehrgarten'];
+let S='title',hp=5,sg=0,room=0,P={x:120,y:110,d:1},used={},cur=null,keys={},f=0,tx='',tm=0;
+const solid=(x,y)=>{const c=MP[room][y>>4]?.[x>>4];return c=='#'||c=='b'},blk=(x,y)=>[[-5,-2],[5,-2],[-5,6],[5,6]].some(([a,b])=>solid(x+a,y+b));
+const toast=s=>{tx=s;tm=150};
+function pick(c){let p=Q.filter(q=>q[0]==c&&!used[q[1]]);if(!p.length){Q.filter(q=>q[0]==c).forEach(q=>delete used[q[1]]);p=Q.filter(q=>q[0]==c)}const q=p[Math.random()*p.length|0];used[q[1]]=1;return q}
+const WHO={b:'Apfelbaum: „Schneide mich richtig!“',p:'Pilzwolke: „Du kommst nicht vorbei!“',r:'Rosenbusch: „Wie schneidest du mich?“'};
+function opts(arr,cb){const o=$('o');o.innerHTML='';arr.map((t,i)=>({t,ok:!i})).sort(()=>Math.random()-.5).forEach(a=>{const b=document.createElement('button');b.className='o';b.textContent=a.t;b.onclick=()=>{if(!$('nx').hidden||b.disabled)return;[...o.children].forEach(c=>c.disabled=true);b.classList.add(a.ok?'ok':'no');if(!a.ok)[...o.children].forEach(c=>{if(c.textContent==arr[0])c.classList.add('ok')});cb(a.ok)};o.appendChild(b)})}
+function fin(ok,msg){if(ok){if(cur==B)B.hp--;else{cur.done=1;sg++}}else hp--;$('f').textContent=msg;$('nx').hidden=false;$('nx').focus()}
+function ask(e){S='quiz';cur=e;const boss=e==B,q=pick(boss?'bprn'[Math.random()*4|0]:e.t),r=R[Q.indexOf(q)];
+$('w').textContent=boss?'EGO, der Endgegner: „Beweise dein Fachwissen!“':(e.t=='n'?e.n+':':WHO[e.t]);$('q').textContent=q[1];$('f').textContent='';$('nx').hidden=true;
+opts(q.slice(2),ok=>{if(!ok)return fin(0,'Leider falsch. Richtig: '+q[2]);if(!r)return fin(1,boss?'Treffer! Ego taumelt.':'Richtig! +1 Siegel');
+setTimeout(()=>{$('q').textContent=q[1]+' – Und warum?';$('f').textContent='Richtig! Jetzt die Begründung:';opts(r,k=>k?fin(1,'Richtig begründet! '+(boss?'Ego taumelt.':'+1 Siegel')):fin(0,'Die Antwort stimmte, die Begründung nicht. Richtig: '+r[0]))},800)});
+$('m').hidden=false}
+$('nx').onclick=()=>{$('m').hidden=true;const dx=P.x-cur.x,dy=P.y-cur.y,l=Math.hypot(dx,dy)||1;cur.cd=f+120;const qx=P.x+dx/l*30,qy=P.y+dy/l*30;if(!blk(qx,qy)){P.x=qx;P.y=qy}
+if(B.hp<=0){S='end';$('go').textContent='Nochmal spielen';$('t').hidden=false;return}
+if(hp<=0){hp=5;room=0;P={x:120,y:110,d:1};toast('Kompostpause! Du bist wieder fit.')}S='play'};
+function reset(){hp=5;sg=0;room=0;P={x:120,y:110,d:1};used={};B.hp=8;E.forEach(r=>r.forEach(e=>e.done=0))}
+$('go').onclick=()=>{reset();S='play';$('t').hidden=true;toast('Tipp: Berühre Bäume, Rosen, Wolken und Leute!')};
+addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=1;if(e.key.startsWith('Arrow'))e.preventDefault()});
+addEventListener('keyup',e=>delete keys[e.key.toLowerCase()]);
+document.querySelectorAll('#pad button').forEach(b=>{const k=b.dataset.k,on=e=>{e.preventDefault();keys[k]=1},off=()=>delete keys[k];b.addEventListener('pointerdown',on);['pointerup','pointerleave','pointercancel'].forEach(v=>b.addEventListener(v,off))});
+function go(r,x,y){if(r==3&&sg<NEED){toast('Das Tor zum Lehrgarten öffnet sich ab '+NEED+' Siegeln!');P.x=Math.min(P.x,W-8);P.y=Math.min(P.y,MH-8);return}room=r;P.x=x;P.y=y}
+function up(){f++;if(tm)tm--;if(S!='play')return;
+const dx=(keys.arrowright||keys.d?1:0)-(keys.arrowleft||keys.a?1:0),dy=(keys.arrowdown||keys.s?1:0)-(keys.arrowup||keys.w?1:0);
+if(dx&&!blk(P.x+dx*1.4,P.y))P.x+=dx*1.4;if(dy&&!blk(P.x,P.y+dy*1.4))P.y+=dy*1.4;if(dx)P.d=dx;const rx=room%2,ry=room>>1;
+if(P.x<4){rx?go(room-1,W-8,P.y):P.x=4}if(P.x>W-4){rx?P.x=W-4:go(room+1,8,P.y)}
+if(P.y<4){ry?go(room-2,P.x,MH-8):P.y=4}if(P.y>MH-4){ry?P.y=MH-4:go(room+2,P.x,8)}
+for(const e of E[room]){if(e.t=='p'&&!e.done){e.x=e.ox+Math.sin(f/40+e.ox)*12;e.y=e.oy+Math.cos(f/50+e.oy)*6}
+if(!e.done&&f>(e.cd||0)&&Math.abs(P.x-e.x)<13&&Math.abs(P.y-e.y)<13){ask(e);return}}
+if(room==3&&B.hp>0){B.x+=B.v*.6;if(B.x>180||B.x<60)B.v*=-1;if(f>(B.cd||0)&&Math.abs(P.x-B.x)<24&&Math.abs(P.y-B.y)<26)ask(B)}}
+function man(x,y,s,d=1){g.save();g.translate(x,y);g.scale(s*d,s);
+g.fillStyle='#4e342e';g.fillRect(-6,10,5,5);g.fillRect(1,10,5,5);g.fillStyle='#3b6ea5';g.fillRect(-6,4,5,7);g.fillRect(1,4,5,7);
+g.fillStyle='#2e7d32';g.fillRect(-7,-6,14,11);g.fillStyle='#fff3c4';g.fillRect(-3,-3,6,7);
+g.fillStyle='#f1c27d';g.beginPath();g.arc(0,-11,6,0,7);g.fill();g.fillStyle='#e6c35c';g.fillRect(-11,-15,22,3);g.beginPath();g.arc(0,-15,6,Math.PI,0);g.fill();
+g.fillStyle='#000';g.fillRect(-3,-11,2,2);g.fillRect(2,-11,2,2);g.fillStyle='#9e9e9e';g.fillRect(8,-3,2,11);g.fillStyle='#d32f2f';g.fillRect(7,6,4,4);g.restore()}
+function ego(x,y){g.save();g.translate(x,y);g.scale(1.7,1.7);
+g.fillStyle='#37474f';g.fillRect(-9,-4,18,18);g.fillStyle='#263238';g.fillRect(-8,14,6,8);g.fillRect(2,14,6,8);
+g.fillStyle='#f5d142';g.beginPath();g.arc(0,-14,10,0,7);g.fill();g.fillRect(-10,-14,20,14);
+g.fillStyle='#f1c27d';g.fillRect(-6,-12,12,11);g.fillStyle='#000';g.fillRect(-4,-9,2,2);g.fillRect(2,-9,2,2);g.fillRect(-3,-4,6,1);
+g.save();g.translate(9,0);g.rotate(Math.sin(f/14)*.35-.5);g.fillStyle='#b0bec5';g.fillRect(0,-3,70,6);g.fillStyle='#78909c';for(let i=4;i<70;i+=6)g.fillRect(i,3,3,3);g.fillStyle='#6d4c41';g.fillRect(-6,-4,9,8);g.restore();g.restore()}
+function tree(e){const d=e.done;g.fillStyle='#5d4037';g.fillRect(e.x-4,e.y-2,8,18);g.fillStyle=d?'#4c9a3a':'#2e7d32';g.beginPath();g.arc(e.x,e.y-12,d?15:19,0,7);g.fill();
+g.fillStyle=d?'#ffd54f':'#e53935';[[-8,-14],[6,-18],[2,-6],[-4,-22]].forEach(([a,b])=>g.fillRect(e.x+a,e.y+b,4,4))}
+function rose(e){g.fillStyle='#388e3c';g.beginPath();g.arc(e.x,e.y,15,0,7);g.fill();g.fillStyle=e.done?'#ff80ab':'#9e9e9e';[[-7,-4],[5,-7],[2,6],[-5,6],[8,3]].forEach(([a,b])=>{g.beginPath();g.arc(e.x+a,e.y+b,3,0,7);g.fill()})}
+function cloud(e){g.fillStyle='#9a86b8';[[-10,0,11],[4,-4,13],[14,2,9]].forEach(([a,b,r])=>{g.beginPath();g.arc(e.x+a,e.y+b,r,0,7);g.fill()});g.fillStyle='#fff';g.fillRect(e.x-5,e.y-4,3,4);g.fillRect(e.x+4,e.y-4,3,4);g.fillStyle='#4a148c';g.fillRect(e.x-3,e.y+3,8,2)}
+function npc(e){g.fillStyle=e.c;g.fillRect(e.x-7,e.y-6,14,18);g.fillStyle='#f1c27d';g.beginPath();g.arc(e.x,e.y-12,6,0,7);g.fill();g.fillStyle='#e6c35c';g.fillRect(e.x-9,e.y-17,18,3);if(e.done){g.fillStyle='#fff';g.font='bold 14px sans-serif';g.fillText('✓',e.x-5,e.y-22)}}
+const sc=(k,x,y,fn)=>{g.save();g.scale(k,k);fn(x/k,y/k);g.restore()};
+function tile(c,x,y){const X=x*T,Y=y*T,h=(x*7+y*13+room*5)%9;
+if(c=='#'||c=='s'){g.fillStyle='#a86030';g.fillRect(X,Y,T,T);g.fillStyle='#703818';g.fillRect(X,Y+4,T,2);g.fillRect(X,Y+10,T,2);g.fillStyle='#c88850';g.fillRect(X,Y,T,1);
+if(c=='s'){g.fillStyle='#f0e8c0';[2,6,10,14].forEach(o=>g.fillRect(X+3,Y+o-2,10,2));g.fillStyle='#303030';[3,7,11,15].forEach(o=>g.fillRect(X+3,Y+o-2,10,1))}return}
+g.fillStyle=c==','?'#f0e898':'#78b840';g.fillRect(X,Y,T,T);
+if(c==','){g.fillStyle='#d8c870';g.fillRect(X,Y,1,T);g.fillRect(X+T-1,Y,1,T)}else if(h<3){g.fillStyle='#58a030';g.fillRect(X+3+h*2,Y+5,1,4);g.fillRect(X+5+h*2,Y+6,1,3)}
+if(c=='b'){g.fillStyle='#184818';g.beginPath();g.arc(X+8,Y+9,8,0,7);g.fill();g.fillStyle='#3a9a30';g.beginPath();g.arc(X+8,Y+8,7,0,7);g.fill();g.fillStyle='#78d850';g.fillRect(X+5,Y+5,3,2);g.fillRect(X+9,Y+9,3,2)}}
+let hc='';function hud(){const k=sg+'|'+hp+'|'+room;if(k==hc)return;hc=k;$('sgn').textContent=sg+'/'+NEED;$('rn').textContent=NM[room];const h='<svg viewBox="0 0 24 24"><path d="M12 21s-8-5.3-8-11a4.5 4.5 0 018-2.8A4.5 4.5 0 0120 10c0 5.7-8 11-8 11z" ';$('hr').innerHTML=[0,1,2,3,4].map(i=>h+(i<hp?'fill="#e53935"':'fill="none" stroke="#e53935" stroke-width="2"')+'/></svg>').join('')}
+function draw(){const m=MP[room];for(let y=0;y<11;y++)for(let x=0;x<15;x++)tile(m[y][x],x,y);
+if(sg<NEED){g.fillStyle='#8d6e63';if(room==1)g.fillRect(0,MH-4,W,4);if(room==2)g.fillRect(W-4,0,4,MH)}
+for(const e of E[room]){if(e.t=='p'&&e.done)continue;const fn={b:tree,r:rose,p:cloud,n:npc}[e.t];sc(e.t=='p'?.55:.6,e.x,e.y,(a,b)=>fn({...e,x:a,y:b}))}
+if(room==3&&B.hp>0){sc(.55,B.x,B.y,ego);g.fillStyle='#000';g.fillRect(70,4,100,6);g.fillStyle='#e53935';g.fillRect(71,5,98*B.hp/8,4)}
+man(P.x,P.y,.6,P.d);hud();
+if(tm){g.fillStyle='rgba(0,0,0,.75)';g.fillRect(8,MH-22,W-16,16);g.fillStyle='#fff';g.textAlign='center';g.font='9px sans-serif';g.fillText(tx,W/2,MH-11);g.textAlign='left'}}
+function title(end){const gr=g.createLinearGradient(0,0,0,H);gr.addColorStop(0,'#87ceeb');gr.addColorStop(.6,'#dff3ff');gr.addColorStop(.6,'#78b840');gr.addColorStop(1,'#58a030');g.fillStyle=gr;g.fillRect(0,0,W,H);
+[30,80,160,210].forEach(x=>sc(.9,x,112,(a,b)=>tree({x:a,y:b,done:0})));
+const fit=(t,w,z,mx)=>{do{g.font=w+' '+z+'px Georgia,serif';z--}while(g.measureText(t).width>mx&&z>6)};
+g.textAlign='center';g.lineJoin='round';g.lineWidth=3;g.strokeStyle='#3e2723';const t=end?'FACHWART MASTER!':'FACHWART MASTER';fit(t,'bold',20,W-30);g.strokeText(t,W/2,32);g.fillStyle='#ffd54f';g.fillText(t,W/2,32);
+const u=end?'Ego ist besiegt – du hast die Prüfung im Griff!':'Das Obst- und Gartenbau-Abenteuer';fit(u,'italic',11,W-30);g.fillStyle='#1b3a1b';g.fillText(u,W/2,48);man(W/2,116,2.3,1);g.textAlign='left'}
+(function L(){g.setTransform(3,0,0,3,0,0);hud();up();if(S=='title')title();else if(S=='end')title(1);else draw();requestAnimationFrame(L)})();
+</script></body></html>
